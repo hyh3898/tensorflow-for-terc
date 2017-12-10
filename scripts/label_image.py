@@ -20,8 +20,9 @@ usage:
 
 '''bash
 python scripts/label_image.py \
-  --graph=tf_files/retrained_graph.pb \
-  --image=tf_files/flower_photos/daisy/21652746_cc379e0eea_m.jpg 
+  --graph=tf_files/woe/woe_retrained_graph.pb \
+  --labels=tf_files/woe/woe_retrained_labels.txt \
+  --image=tf_files/woe/woe_photos/class/photo_name.jpg
 '''
 
 """

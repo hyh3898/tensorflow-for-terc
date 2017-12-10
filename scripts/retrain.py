@@ -102,16 +102,16 @@ Retrain:
 
 '''bash
 python -m scripts.retrain \
-	--image_dir=tf_files/flower_photos \
-	--output_graph=tf_files/retrained_graph.pb \
-	--output_labels=tf_files/retrained_labels.txt \
-	--summaries_dir=tf_files/training_summaries/"${ARCHITECTURE}" \
+	--image_dir=tf_files/woe/woe_photos \
+	--output_graph=tf_files/woe/retrained_graph.pb \
+	--output_labels=tf_files/woe/retrained_labels.txt \
+	--summaries_dir=tf_files/woe/training_summaries/"${ARCHITECTURE}" \
 	--how_many_training_steps=500 \
 	--learning_rate=0.01 \
 	--testing_percentage=10 \
 	--validation_percentage=10 \
 	--model_dir=tf_files/models/ \
-	--bottleneck_dir=tf_files/bottlenecks \
+	--bottleneck_dir=tf_files/woe/woe_bottlenecks \
 	--architecture="${ARCHITECTURE}" \
 	--test_batch_size=-1 \
 	--validation_batch_size=-1
@@ -268,12 +268,15 @@ def get_image_path(image_lists, label_name, index, image_dir, category):
     if label_name not in image_lists:
         tf.logging.fatal('Label does not exist %s.', label_name)
     label_lists = image_lists[label_name]
+    
     if category not in label_lists:
         tf.logging.fatal('Category does not exist %s.', category)
     category_list = label_lists[category]
+    
     if not category_list:
         tf.logging.fatal('Label %s has no images in the category %s.',
                          label_name, category)
+    
     mod_index = index % len(category_list)
     base_name = category_list[mod_index]
     sub_dir = label_lists['dir']
@@ -326,8 +329,7 @@ def create_model_graph(model_info):
     return graph, bottleneck_tensor, resized_input_tensor
 
 
-def run_bottleneck_on_image(sess, image_data, image_data_tensor, decoded_image_tensor, resized_input_tensor,
-                            bottleneck_tensor):
+def run_bottleneck_on_image(sess, image_data, image_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor):
     """Runs inference on an image to extract the 'bottleneck' summary layer.
 
   Args:
@@ -393,8 +395,7 @@ def ensure_dir_exists(dir_name):
 bottleneck_path_2_bottleneck_values = {}
 
 
-def create_bottleneck_file(bottleneck_path, image_lists, label_name, index, image_dir, category, sess, jpeg_data_tensor,
-                           decoded_image_tensor, resized_input_tensor, bottleneck_tensor):
+def create_bottleneck_file(bottleneck_path, image_lists, label_name, index, image_dir, category, sess, jpeg_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor):
     """Create a single bottleneck file."""
     tf.logging.info('Creating bottleneck at ' + bottleneck_path)
     image_path = get_image_path(image_lists, label_name, index,
@@ -414,9 +415,7 @@ def create_bottleneck_file(bottleneck_path, image_lists, label_name, index, imag
         bottleneck_file.write(bottleneck_string)
 
 
-def get_or_create_bottleneck(sess, image_lists, label_name, index, image_dir, category, bottleneck_dir,
-                             jpeg_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor,
-                             architecture):
+def get_or_create_bottleneck(sess, image_lists, label_name, index, image_dir, category, bottleneck_dir, jpeg_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor, architecture):
     """Retrieves or calculates bottleneck values for an image.
 
   If a cached version of the bottleneck data exists on-disk, return that,
@@ -474,8 +473,7 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, image_dir, ca
     return bottleneck_values
 
 
-def cache_bottlenecks(sess, image_lists, image_dir, bottleneck_dir, jpeg_data_tensor, decoded_image_tensor,
-                      resized_input_tensor, bottleneck_tensor, architecture):
+def cache_bottlenecks(sess, image_lists, image_dir, bottleneck_dir, jpeg_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor, architecture):
     """Ensures all the training, testing, and validation bottlenecks are cached.
 
   Because we're likely to read the same image multiple times (if there are no
@@ -517,8 +515,7 @@ def cache_bottlenecks(sess, image_lists, image_dir, bottleneck_dir, jpeg_data_te
                         str(how_many_bottlenecks) + ' bottleneck files created.')
 
 
-def get_random_cached_bottlenecks(sess, image_lists, how_many, category, bottleneck_dir, image_dir, jpeg_data_tensor,
-                                  decoded_image_tensor, resized_input_tensor, bottleneck_tensor, architecture, ground_truth_df):
+def get_random_cached_bottlenecks(sess, image_lists, how_many, category, bottleneck_dir, image_dir, jpeg_data_tensor, decoded_image_tensor, resized_input_tensor, bottleneck_tensor, architecture):
     """Retrieves bottleneck values for cached images.
 
   If no distortions are being applied, this function can retrieve the cached
@@ -584,28 +581,20 @@ def get_random_cached_bottlenecks(sess, image_lists, how_many, category, bottlen
                 ground_truths.append(ground_truth)
                 filenames.append(image_name)
 
-    # store the photo names into a list
-    temp = filenames
-    photo_names = []
-    for path in temp:
-        path_arr = path.split('/')
-        photo_names.append(path_arr[-1])
+    # multi-class ground truth is a multi-hot vector
+    # =======================================================
+    # photo_names = []
+    # for path in filenames:
+    #     path_arr = path.split('/')
+    #     photo_names.append(path_arr[-1])
+    # photo_names_df = pd.DataFrame(photo_names, columns=['photo_name'])
+    # ground_truths = photo_names_df.merge(ground_truths_df, on='photo_name').drop('photo_name', axis=1).values
+    # =======================================================
 
-    photo_names_df = pd.DataFrame(photo_names, columns=['photo_name'])
-
-    # ==== Join dataframe ====
-
-    # ========================
-    ground_truths = photo_names_df.merge(ground_truth_df, on='photo_name')\
-        .drop('photo_name', axis=1).values
-
-    # print(image_lists.keys())
-    # print(ground_truths[0])
     return bottlenecks, ground_truths, filenames
 
 
-def get_random_distorted_bottlenecks(sess, image_lists, how_many, category, image_dir, input_jpeg_tensor,
-                                     distorted_image, resized_input_tensor, bottleneck_tensor):
+def get_random_distorted_bottlenecks(sess, image_lists, how_many, category, image_dir, input_jpeg_tensor, distorted_image, resized_input_tensor, bottleneck_tensor):
     """Retrieves bottleneck values for training images, after distortions.
 
   If we're training with distortions like crops, scales, or flips, we have to
@@ -674,8 +663,7 @@ def should_distort_images(flip_left_right, random_crop, random_scale, random_bri
             (random_brightness != 0))
 
 
-def add_input_distortions(flip_left_right, random_crop, random_scale, random_brightness, input_width, input_height,
-                          input_depth, input_mean, input_std):
+def add_input_distortions(flip_left_right, random_crop, random_scale, random_brightness, input_width, input_height, input_depth, input_mean, input_std):
     """Creates the operations to apply the specified distortions.
 
   During training it can help to improve the results if we run the images
@@ -858,26 +846,26 @@ def add_final_training_ops(class_count, final_tensor_name, bottleneck_tensor, bo
             final_tensor)
 
 
-def add_evaluation_step(result_tensor, ground_truth_tensor):
-    """Inserts the operations we need to evaluate the accuracy of our results.
+# def add_evaluation_step(result_tensor, ground_truth_tensor):
+#     """Inserts the operations we need to evaluate the accuracy of our results.
 
-  Args:
-    result_tensor: The new final node that produces results.
-    ground_truth_tensor: The node we feed ground truth data
-    into.
+#   Args:
+#     result_tensor: The new final node that produces results.
+#     ground_truth_tensor: The node we feed ground truth data
+#     into.
 
-  Returns:
-    Tuple of (evaluation step, prediction).
-  """
-    with tf.name_scope('accuracy'):
-        with tf.name_scope('correct_prediction'):
-            prediction = tf.argmax(result_tensor, 1)
-            correct_prediction = tf.equal(
-                prediction, tf.argmax(ground_truth_tensor, 1))
-        with tf.name_scope('accuracy'):
-            evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    tf.summary.scalar('accuracy', evaluation_step)
-    return evaluation_step, prediction
+#   Returns:
+#     Tuple of (evaluation step, prediction).
+#   """
+#     with tf.name_scope('accuracy'):
+#         with tf.name_scope('correct_prediction'):
+#             prediction = tf.argmax(result_tensor, 1)
+#             correct_prediction = tf.equal(
+#                 prediction, tf.argmax(ground_truth_tensor, 1))
+#         with tf.name_scope('accuracy'):
+#             evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+#     tf.summary.scalar('accuracy', evaluation_step)
+#     return evaluation_step, prediction
 
 
 # =================================================================================
@@ -896,8 +884,7 @@ def add_mul_class_evaluation_step(result_tensor, ground_truth_tensor):
     with tf.name_scope('evaluation'):
         with tf.name_scope('correct_prediction'):
             prediction = tf.greater(result_tensor, 0.5)
-            correct_prediction = tf.equal(
-                prediction, tf.greater(ground_truth_tensor, 0.5))
+            correct_prediction = tf.equal(prediction, tf.greater(ground_truth_tensor, 0.5))
         with tf.name_scope('accuracy'):
             accuracy_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         with tf.name_scope('precision'):
@@ -910,8 +897,6 @@ def add_mul_class_evaluation_step(result_tensor, ground_truth_tensor):
     tf.summary.scalar('precision', precision)
     tf.summary.scalar('recall', recall)
     return prediction, accuracy_step, precision_step, recall_step
-
-
 # =================================================================================
 
 
@@ -1056,10 +1041,11 @@ def add_jpeg_decoding(input_width, input_height, input_depth, input_mean, input_
 
 
 def main(_):
-    # Read ground truth CSV to dataframe
-    print(FLAGS.image_dir + '/ground_truths.csv')
-    ground_truth_df = pd.read_csv(FLAGS.image_dir + '/ground_truths.csv').drop(0, axis=0)
-    print(ground_truth_df)
+    # Read ground_truths.csv to dataframe
+    # ====================================================================================
+    # print('read '+FLAGS.image_dir + '/ground_truths.csv')
+    # ground_truths_df = pd.read_csv(FLAGS.image_dir + '/ground_truths.csv').drop(0, axis=0)
+    # ====================================================================================
 
     # Needed to make sure the logging output is visible.
     # See https://github.com/tensorflow/tensorflow/issues/3047
@@ -1224,9 +1210,8 @@ def main(_):
                 # Run a validation step and capture training summaries for TensorBoard
                 # with the `merged` op.
                 validation_summary, validation_accuracy, validation_precision, validation_recall = sess.run(
-                    [merged, accuracy_step, precision_step, recall_step],
-                    feed_dict={bottleneck_input: validation_bottlenecks,
-                               ground_truth_input: validation_ground_truth})
+                    [merged, accuracy_step, precision_step, recall_step], feed_dict={bottleneck_input: validation_bottlenecks,
+                    ground_truth_input: validation_ground_truth})
                 validation_writer.add_summary(validation_summary, i)
                 tf.logging.info('%s: Step %d: Validation accuracy = %.1f%% (N=%d)' %
                                 (datetime.now(), i, validation_accuracy * 100,
@@ -1237,7 +1222,7 @@ def main(_):
                 tf.logging.info('%s: Step %d: Validation recall = %.1f%% (N=%d)' %
                                 (datetime.now(), i, validation_recall * 100,
                                  len(validation_bottlenecks)))
-            # ====================================================================================
+                # ====================================================================================
 
             # Store intermediate results
             intermediate_frequency = FLAGS.intermediate_store_frequency
