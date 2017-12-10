@@ -22,4 +22,4 @@ The `scripts` directory contains helpers for the codelab. Some of these come fro
 
 # Processing Data
 
-* `Data for training and validation`[https://drive.google.com/open?id=1Iv2JrOl-8XocuUb0TUdN0V90T46qa5Mk]
+* [Data for training and validation](https://drive.google.com/open?id=1Iv2JrOl-8XocuUb0TUdN0V90T46qa5Mk)
