@@ -58,3 +58,11 @@ If you want to kill all existing TensorBoard instances:
 pkill -f "tensorboard"
 ```
 
+### Predict the new Images with retrained model
+```shell
+python scripts/label_image.py \
+  --graph=tf_files/woe/woe_retrained_graph.pb \
+  --labels=tf_files/woe/woe_retrained_labels.txt \
+  --image=tf_files/woe/woe_photos/class/photo_name.jpg
+
+```
