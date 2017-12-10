@@ -25,5 +25,36 @@ The `scripts` directory contains helpers for the codelab. Some of these come fro
 * [Data for training and validation](https://drive.google.com/open?id=1Iv2JrOl-8XocuUb0TUdN0V90T46qa5Mk)
 
 # Instructions
-## Retrain the Model
+### Retrain the Model
+```shell
+$ ARCHITECTURE='inception_v3'
+```
+Retrain:
+```shell
+$ ARCHITECTURE='inception_v3'
+$ python -m scripts.retrain \
+	--image_dir=tf_files/woe/woe_photos \
+	--output_graph=tf_files/woe/retrained_graph.pb \
+	--output_labels=tf_files/woe/retrained_labels.txt \
+	--summaries_dir=tf_files/woe/training_summaries/"${ARCHITECTURE}" \
+	--how_many_training_steps=500 \
+	--learning_rate=0.01 \
+	--testing_percentage=10 \
+	--validation_percentage=10 \
+	--model_dir=tf_files/models/ \
+	--bottleneck_dir=tf_files/woe/woe_bottlenecks \
+	--architecture="${ARCHITECTURE}" \
+	--test_batch_size=-1 \
+	--validation_batch_size=-1
+```
+
+Visualize with TensorBoard:
+```shell
+$ tensorboard --logdir tf_files/training_summaries &
+```
+
+If you want to kill all existing TensorBoard instances:
+```shell
+pkill -f "tensorboard"
+```
 
