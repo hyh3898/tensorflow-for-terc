@@ -5,6 +5,7 @@ The `label_image.py` has also been slightly modified to write out the resulting 
 
 Replace new softmax activation function with sigmoid,
 Check [here](https://medium.com/@bartyrad/multi-label-image-classification-with-inception-net-cbb2ee538e30) for detailed explanation of all the changes and reasons
+Reference [How to Retrain Inception’s Final Layer for New Categories](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/docs_src/tutorials/image_retraining.md)
 
 
 
@@ -37,8 +38,11 @@ The `scripts` directory contains helpers for the codelab. Some of these come fro
 # Preprocessing Data
 ### Dataset
 * Provided by Terc
-* Scraped from Windows on Earth website Briefly describe how you scraped, e.g. package you used
+* Scraped from [Windows on Earth](http://www.windowsonearth.org) Briefly describe how you scraped, e.g. package you used
 * Link to [downloadable data](https://drive.google.com/open?id=1Iv2JrOl-8XocuUb0TUdN0V90T46qa5Mk)
+
+### Preprocess
+* Target Tags: agriculture, aurora, cupola, day, dock/undock, moon, night, stars, structure,  sunrise/sunset, volcano
 
 # Usage
 ### Retrain the Model
